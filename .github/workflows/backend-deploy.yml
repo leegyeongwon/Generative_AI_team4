@@ -27,7 +27,7 @@ jobs:
           docker stop gas-station || true
           docker rm gas-station || true
           docker run -d --name gas-station \
-            --env-file /root/backend/.env \
+            --env-file /home/github-runner/secrets/backend.env \
             -p 8000:8000 \
             --restart unless-stopped \
             gas-station:latest
