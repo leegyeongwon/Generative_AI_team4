@@ -29,7 +29,6 @@ const adminFormEmpty = document.getElementById("adminFormEmpty");
 const adminForm = document.getElementById("adminForm");
 const adminFormTitle = document.getElementById("adminFormTitle");
 const adminFields = document.getElementById("adminFields");
-const adminUpdateButton = document.getElementById("adminUpdateButton");
 const adminDeleteButton = document.getElementById("adminDeleteButton");
 const adminStatus = document.getElementById("adminStatus");
 
@@ -497,36 +496,6 @@ async function submitAdminRegister() {
   }
 }
 
-async function submitAdminUpdate() {
-  if (!adminState.currentTable) return;
-
-  const { keys, missing } = collectAdminPrimaryKeyValues();
-
-  if (missing || adminState.primaryKey.length === 0) {
-    setAdminStatus("수정하려면 식별자(기본키) 값을 모두 입력하세요.", true);
-    return;
-  }
-
-  const data = collectAdminFieldValues();
-
-  setAdminStatus("수정 중입니다...");
-
-  try {
-    const payload = await fetchJson("api/admin_update.php", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        table: adminState.currentTable,
-        keys,
-        data,
-      }),
-    });
-
-    setAdminStatus(payload.message || "수정되었습니다.");
-  } catch (error) {
-    setAdminStatus(error.message, true);
-  }
-}
 async function submitAdminDelete() {
   if (!adminState.currentTable) return;
 
@@ -611,8 +580,6 @@ adminForm.addEventListener("submit", (event) => {
   event.preventDefault();
   submitAdminRegister();
 });
-
-adminUpdateButton.addEventListener("click", () => submitAdminUpdate());
 
 adminDeleteButton.addEventListener("click", () => submitAdminDelete());
 
