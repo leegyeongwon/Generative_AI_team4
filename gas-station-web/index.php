@@ -30,6 +30,7 @@ $jsVersion = filemtime(__DIR__ . '/js/app.js');
             <button class="nav-button" type="button" data-view-link="map">지도 보기</button>
             <button class="nav-button" type="button" data-view-link="voice">음성 검색</button>
         </nav>
+        <button class="ghost-button admin-button" id="adminButton" type="button">관리자</button>
     </header>
 
     <main class="app-shell">
@@ -161,6 +162,35 @@ $jsVersion = filemtime(__DIR__ . '/js/app.js');
     <dialog class="detail-dialog" id="detailDialog">
         <div class="dialog-body" id="detailBody"></div>
         <button class="ghost-button close-dialog" id="closeDialog" type="button">닫기</button>
+    </dialog>
+
+    <dialog class="detail-dialog admin-dialog" id="adminDialog">
+        <div class="dialog-body admin-body">
+            <div class="admin-header">
+                <div>
+                    <p>관리자 도구</p>
+                    <h3>테이블 데이터 관리</h3>
+                </div>
+                <button class="ghost-button close-dialog" id="closeAdminDialog" type="button">닫기</button>
+            </div>
+            <div class="admin-layout">
+                <aside class="admin-tables" id="adminTableList">
+                    <p class="admin-hint">테이블 목록을 불러오는 중...</p>
+                </aside>
+                <section class="admin-form-panel">
+                    <div class="admin-hint" id="adminFormEmpty">왼쪽에서 테이블을 선택하세요.</div>
+                    <form class="admin-form hidden" id="adminForm">
+                        <h4 id="adminFormTitle"></h4>
+                        <div class="admin-fields" id="adminFields"></div>
+                        <div class="admin-actions">
+                            <button class="primary-button" type="submit" id="adminRegisterButton">등록</button>
+                            <button class="ghost-button danger-button" type="button" id="adminDeleteButton">제거</button>
+                        </div>
+                        <div class="admin-status" id="adminStatus"></div>
+                    </form>
+                </section>
+            </div>
+        </div>
     </dialog>
 
     <script>
