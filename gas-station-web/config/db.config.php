@@ -6,7 +6,7 @@ return [
     'port' => getenv('DB_PORT') ?: '3306',
     'database' => getenv('DB_NAME') ?: 'gas_station',
     'username' => getenv('DB_USER') ?: 'gas_admin',
-    'password' => getenv('DB_PASSWORD') ?: 'change_me',
+    'password' => getenv('DB_PASSWORD') ?: 'team4team4!',
     'charset' => 'utf8mb4',
     'naver_maps_client_id' => getenv('NAVER_MAPS_CLIENT_ID') ?: '',
 ];
