@@ -29,6 +29,7 @@ const adminFormEmpty = document.getElementById("adminFormEmpty");
 const adminForm = document.getElementById("adminForm");
 const adminFormTitle = document.getElementById("adminFormTitle");
 const adminFields = document.getElementById("adminFields");
+const adminUpdateButton = document.getElementById("adminUpdateButton");
 const adminDeleteButton = document.getElementById("adminDeleteButton");
 const adminStatus = document.getElementById("adminStatus");
 
