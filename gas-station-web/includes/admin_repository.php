@@ -135,3 +135,80 @@ function delete_row(string $table, array $keyValues): int
 
     return $stmt->rowCount();
 }
+function update_row(string $table, array $data, array $keyValues): int
+{
+    assert_valid_table($table);
+
+    $columns = get_table_columns($table);
+    $pkColumns = get_primary_key_columns($table);
+
+    if (empty($pkColumns)) {
+        throw new InvalidArgumentException('NO_PRIMARY_KEY');
+    }
+
+    $columnNames = array_map(
+        static fn ($column) => $column['COLUMN_NAME'],
+        $columns
+    );
+
+    $sets = [];
+    $params = [];
+
+    foreach ($columns as $column) {
+        $name = $column['COLUMN_NAME'];
+
+        if ($column['EXTRA'] === 'auto_increment') {
+            continue;
+        }
+
+        if (in_array($name, $pkColumns, true)) {
+            continue;
+        }
+
+        if (!array_key_exists($name, $data)) {
+            continue;
+        }
+
+        $value = trim((string)$data[$name]);
+
+        if ($value === '') {
+            continue;
+        }
+
+        if (!in_array($name, $columnNames, true)) {
+            continue;
+        }
+
+        $sets[] = "`{$name}` = :set_{$name}";
+        $params[":set_{$name}"] = $value;
+    }
+
+    if (empty($sets)) {
+        throw new InvalidArgumentException('EMPTY_DATA');
+    }
+
+    $conditions = [];
+
+    foreach ($pkColumns as $column) {
+        $value = trim((string)($keyValues[$column] ?? ''));
+
+        if ($value === '') {
+            throw new InvalidArgumentException('MISSING_KEY_VALUE');
+        }
+
+        $conditions[] = "`{$column}` = :key_{$column}";
+        $params[":key_{$column}"] = $value;
+    }
+
+    $sql = sprintf(
+        'UPDATE `%s` SET %s WHERE %s',
+        $table,
+        implode(', ', $sets),
+        implode(' AND ', $conditions)
+    );
+
+    $stmt = get_pdo()->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->rowCount();
+}
