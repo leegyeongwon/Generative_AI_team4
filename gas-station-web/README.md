@@ -1,6 +1,6 @@
 # Fuel Finder PHP Web
 
-Apache + PHP(PDO) + MySQL 기반 주유소 가격 검색 웹사이트입니다. 기존 FastAPI `backend`는 유지하고, 이 폴더는 평가 기준의 Apache/PHP-MySQL 연동을 보여주기 위한 웹 루트입니다.
+Apache + PHP(PDO) + MySQL 기반 주유소 가격 검색 웹사이트입니다. 별도로 운영하던 FastAPI `backend`는 기능이 이 폴더와 완전히 중복되어 제거했고, 현재는 이 폴더가 유일한 서비스입니다. DB 초기 데이터 적재용 스크립트는 `../scripts/db-seed`에 있습니다.
 
 ## 폴더 구조
 
