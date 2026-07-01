@@ -26,7 +26,7 @@ gas-station-web/
 
 ## DB 설정
 
-`config/db.config.php`는 기본값만 둡니다. 실제 비밀번호와 API Key는 코드 저장소에 공개하지 않고 환경변수 또는 `config/local.config.php`로 주입합니다.
+`config/db.config.php`에서 서버 환경에 맞게 설정합니다. 실제 비밀번호와 API Key는 코드 저장소에 공개하지 않습니다.
 
 ```php
 return [
@@ -37,34 +37,6 @@ return [
     'password' => getenv('DB_PASSWORD') ?: 'change_me',
     'naver_maps_client_id' => getenv('NAVER_MAPS_CLIENT_ID') ?: '',
 ];
-```
-
-서버에서 파일로 관리하려면:
-
-```bash
-cd /var/www/html/fuel-finder
-cp config/local.config.example.php config/local.config.php
-nano config/local.config.php
-```
-
-`config/local.config.php` 예시:
-
-```php
-<?php
-return [
-    'password' => '실제_DB_비밀번호',
-    'naver_maps_client_id' => 'Naver_Maps_Client_ID',
-];
-```
-
-## Naver Maps 연동
-
-`naver_maps_client_id`가 비어 있으면 지도 영역은 placeholder/fallback으로 동작합니다. 값을 설정하면 검색 결과의 `latitude`, `longitude` 기준으로 실제 Naver 지도 마커가 표시됩니다.
-
-환경변수 방식:
-
-```bash
-export NAVER_MAPS_CLIENT_ID="발급받은_Maps_Client_ID"
 ```
 
 ## 서버 배치 예시
@@ -143,12 +115,11 @@ curl -s -X POST "http://127.0.0.1/fuel-finder/api/parse_query.php" \
 
 1. 웹사이트 접속
    - Apache 공인 IP 또는 도메인으로 접속
-   - 홈 탭에서 지역/유종 빠른 검색 화면이 표시되는지 확인
+   - 메인 화면에서 기본 서울 휘발유 결과가 표시되는지 확인
 
 2. 지역 검색
-   - 홈 탭에서 `서울 휘발유`, `경기 경유`, `서울 셀프` 버튼 클릭
-   - 가격 검색 탭으로 이동하면서 지역/유종/셀프 조건이 자동 입력되는지 확인
-   - 가격 낮은 순 결과 표시 확인
+   - 지역 `서울`, 유종 `휘발유`, 개수 `5`
+   - 가격 낮은 순 결과 표시
 
 3. 최저가 검색
    - 지역 `경기`, 유종 `경유`
@@ -159,14 +130,13 @@ curl -s -X POST "http://127.0.0.1/fuel-finder/api/parse_query.php" \
    - 휘발유, 경유, 고급휘발유, 실내등유 가격 확인
 
 5. 지도 표시
-   - `지도 보기` 탭 클릭 시 가격 검색 화면 오른쪽 지도 패널로 이동
-   - `NAVER_MAPS_CLIENT_ID`를 설정하면 실제 지도 SDK가 로드되고 좌표 기준 마커가 표시됨
-   - 지도 오류가 발생해도 검색 결과는 유지되고 임시 좌표 마커로 전환됨
+   - Naver Maps Key가 없으면 placeholder 좌표 마커 표시
+   - `NAVER_MAPS_CLIENT_ID`를 설정하면 실제 지도 SDK가 로드됨
 
 6. 음성/자연어 검색
-   - `음성 검색` 탭에서 오디오 파일 선택 후 `마이크` 버튼 클릭
-   - `/api/csr_recognize.php` placeholder 문장이 음성 검색 박스에 반영됨
-   - `/api/parse_query.php` 결과를 검색 조건으로 사용해 가격 검색 탭으로 이동
+   - 음성 검색 메뉴에서 마이크 클릭
+   - placeholder 문장이 표시됨
+   - 자연어 검색 클릭 시 `/api/parse_query.php` 결과를 검색 조건으로 사용
 
 ## 오류 처리
 

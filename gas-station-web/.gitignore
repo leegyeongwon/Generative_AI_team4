@@ -1,3 +1,2 @@
-config/local.config*.php
-!config/local.config.example.php
+config/local.config.php
 .DS_Store

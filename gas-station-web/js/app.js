@@ -22,6 +22,22 @@ const mapCanvas = document.getElementById("mapCanvas");
 const mapState = document.getElementById("mapState");
 const detailDialog = document.getElementById("detailDialog");
 const detailBody = document.getElementById("detailBody");
+const adminButton = document.getElementById("adminButton");
+const adminDialog = document.getElementById("adminDialog");
+const adminTableList = document.getElementById("adminTableList");
+const adminFormEmpty = document.getElementById("adminFormEmpty");
+const adminForm = document.getElementById("adminForm");
+const adminFormTitle = document.getElementById("adminFormTitle");
+const adminFields = document.getElementById("adminFields");
+const adminUpdateButton = document.getElementById("adminUpdateButton");
+const adminDeleteButton = document.getElementById("adminDeleteButton");
+const adminStatus = document.getElementById("adminStatus");
+
+const adminState = {
+  tables: [],
+  currentTable: null,
+  primaryKey: [],
+};
 
 function setView(name) {
   const targetView = name === "map" ? "search" : name;
@@ -301,6 +317,241 @@ function priceCell(label, value) {
   return `<div class="price-cell"><span>${label}</span><strong>${formatPrice(value)}</strong></div>`;
 }
 
+const ADMIN_COLUMN_LABELS = {
+  station_code: "주유소 코드",
+  station_name: "주유소명",
+  address: "주소",
+  brand: "브랜드",
+  self_yn: "셀프 여부",
+  latitude: "위도",
+  longitude: "경도",
+  username: "사용자명",
+  email: "이메일",
+  password_hash: "비밀번호 해시",
+  price_date: "가격 기준일",
+  premium_gasoline_price: "고급휘발유 가격",
+  gasoline_price: "휘발유 가격",
+  diesel_price: "경유 가격",
+  indoor_kerosene_price: "실내등유 가격",
+  user_id: "사용자 ID",
+  rating: "평점",
+  content: "내용",
+  created_at: "생성일시",
+  id: "ID",
+};
+
+function adminFieldLabel(columnName) {
+  return ADMIN_COLUMN_LABELS[columnName] || columnName;
+}
+
+function adminInputType(dataType) {
+  const numericTypes = ["int", "tinyint", "smallint", "mediumint", "bigint", "decimal", "float", "double"];
+  if (numericTypes.includes(dataType)) {
+    return dataType === "decimal" || dataType === "float" || dataType === "double" ? "number" : "number";
+  }
+  if (dataType === "date") return "date";
+  if (dataType === "datetime" || dataType === "timestamp") return "datetime-local";
+  if (dataType === "text") return "textarea";
+  return "text";
+}
+
+async function openAdminDialog() {
+  adminDialog.showModal();
+  if (adminState.tables.length > 0) {
+    return;
+  }
+
+  adminTableList.innerHTML = `<p class="admin-hint">테이블 목록을 불러오는 중...</p>`;
+  try {
+    const payload = await fetchJson("api/admin_tables.php");
+    adminState.tables = payload.data || [];
+    renderAdminTableList();
+  } catch (error) {
+    adminTableList.innerHTML = `<p class="admin-hint error">테이블 목록을 불러오지 못했습니다: ${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function renderAdminTableList() {
+  adminTableList.innerHTML = "";
+  adminState.tables.forEach((table) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "admin-table-button";
+    button.textContent = table;
+    button.classList.toggle("active", table === adminState.currentTable);
+    button.addEventListener("click", () => selectAdminTable(table));
+    adminTableList.appendChild(button);
+  });
+}
+
+async function selectAdminTable(table) {
+  adminState.currentTable = table;
+  renderAdminTableList();
+  setAdminStatus("");
+  adminFormEmpty.textContent = "테이블 정보를 불러오는 중...";
+  adminFormEmpty.classList.remove("hidden");
+  adminForm.classList.add("hidden");
+
+  try {
+    const payload = await fetchJson(`api/admin_table_schema.php?table=${encodeURIComponent(table)}`);
+    renderAdminForm(table, payload.data.columns, payload.data.primary_key);
+  } catch (error) {
+    adminFormEmpty.textContent = `테이블 정보를 불러오지 못했습니다: ${error.message}`;
+  }
+}
+
+function renderAdminForm(table, columns, primaryKey) {
+  adminState.primaryKey = primaryKey;
+  adminFormTitle.textContent = `${table} 테이블`;
+  adminFields.innerHTML = "";
+
+  columns.forEach((column) => {
+    const name = column.COLUMN_NAME;
+    const isAutoIncrement = column.EXTRA === "auto_increment";
+    const isPrimaryKey = primaryKey.includes(name);
+    const inputType = adminInputType(column.DATA_TYPE);
+
+    const wrapper = document.createElement("label");
+    wrapper.className = "field admin-field";
+
+    const labelText = `${adminFieldLabel(name)}${isPrimaryKey ? " (식별자)" : ""}`;
+    const span = document.createElement("span");
+    span.textContent = labelText;
+    wrapper.appendChild(span);
+
+    let input;
+    if (inputType === "textarea") {
+      input = document.createElement("textarea");
+      input.rows = 3;
+    } else {
+      input = document.createElement("input");
+      input.type = inputType;
+      if (inputType === "number" && column.DATA_TYPE !== "int" && column.DATA_TYPE !== "tinyint") {
+        input.step = "any";
+      }
+    }
+
+    input.name = name;
+    input.dataset.columnName = name;
+    input.dataset.primaryKey = isPrimaryKey ? "true" : "false";
+
+    if (isAutoIncrement) {
+      input.placeholder = "자동 생성됨 (입력 불필요)";
+      input.disabled = true;
+    } else if (name === "created_at") {
+      input.placeholder = "비워두면 현재 시각으로 저장됩니다";
+    } else if (name === "password_hash") {
+      input.placeholder = "해시된 비밀번호 값을 입력하세요";
+    }
+
+    wrapper.appendChild(input);
+    adminFields.appendChild(wrapper);
+  });
+
+  adminFormEmpty.classList.add("hidden");
+  adminForm.classList.remove("hidden");
+}
+
+function collectAdminFieldValues() {
+  const values = {};
+  adminFields.querySelectorAll("[data-column-name]").forEach((input) => {
+    if (!input.disabled) {
+      values[input.dataset.columnName] = input.value;
+    }
+  });
+  return values;
+}
+
+function collectAdminPrimaryKeyValues() {
+  const keys = {};
+  let missing = false;
+  adminFields.querySelectorAll('[data-primary-key="true"]').forEach((input) => {
+    const value = input.value.trim();
+    if (value === "") {
+      missing = true;
+    }
+    keys[input.dataset.columnName] = value;
+  });
+  return { keys, missing };
+}
+
+function setAdminStatus(message, isError = false) {
+  adminStatus.textContent = message;
+  adminStatus.classList.toggle("error", isError);
+}
+
+async function submitAdminRegister() {
+  if (!adminState.currentTable) return;
+  setAdminStatus("등록 중입니다...");
+
+  try {
+    const data = collectAdminFieldValues();
+    const payload = await fetchJson("api/admin_insert.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table: adminState.currentTable, data }),
+    });
+    setAdminStatus(payload.message || "등록되었습니다.");
+  } catch (error) {
+    setAdminStatus(error.message, true);
+  }
+}
+
+async function submitAdminUpdate() {
+  if (!adminState.currentTable) return;
+
+  const { keys, missing } = collectAdminPrimaryKeyValues();
+
+  if (missing || adminState.primaryKey.length === 0) {
+    setAdminStatus("수정하려면 식별자(기본키) 값을 모두 입력하세요.", true);
+    return;
+  }
+
+  const data = collectAdminFieldValues();
+
+  setAdminStatus("수정 중입니다...");
+
+  try {
+    const payload = await fetchJson("api/admin_update.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        table: adminState.currentTable,
+        keys,
+        data,
+      }),
+    });
+
+    setAdminStatus(payload.message || "수정되었습니다.");
+  } catch (error) {
+    setAdminStatus(error.message, true);
+  }
+}
+async function submitAdminDelete() {
+  if (!adminState.currentTable) return;
+
+  const { keys, missing } = collectAdminPrimaryKeyValues();
+  if (missing || adminState.primaryKey.length === 0) {
+    setAdminStatus("삭제하려면 식별자(기본키) 값을 모두 입력하세요.", true);
+    return;
+  }
+
+  const confirmed = window.confirm(`${adminState.currentTable} 테이블에서 해당 항목을 삭제하시겠습니까?`);
+  if (!confirmed) return;
+
+  setAdminStatus("삭제 중입니다...");
+  try {
+    const payload = await fetchJson("api/admin_delete.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table: adminState.currentTable, keys }),
+    });
+    setAdminStatus(payload.message || "삭제되었습니다.");
+  } catch (error) {
+    setAdminStatus(error.message, true);
+  }
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -352,6 +603,18 @@ navButtons.forEach((button) => {
 });
 
 document.getElementById("closeDialog").addEventListener("click", () => detailDialog.close());
+
+adminButton.addEventListener("click", () => openAdminDialog());
+document.getElementById("closeAdminDialog").addEventListener("click", () => adminDialog.close());
+
+adminForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  submitAdminRegister();
+});
+
+adminUpdateButton.addEventListener("click", () => submitAdminUpdate());
+
+adminDeleteButton.addEventListener("click", () => submitAdminDelete());
 
 document.getElementById("voiceButton").addEventListener("click", async () => {
   const fileInput = document.getElementById("audioFile");
