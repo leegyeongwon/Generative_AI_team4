@@ -3,10 +3,12 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
-.env
+.env*
+!.env.example
 
 # PHP
-gas-station-web/config/local.config.php
+gas-station-web/config/local.config*.php
+!gas-station-web/config/local.config.example.php
 vendor/
 
 # OS / editor
