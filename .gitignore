@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# PHP
+gas-station-web/config/local.config.php
+vendor/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
