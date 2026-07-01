@@ -3,6 +3,36 @@ $config = require __DIR__ . '/config/db.config.php';
 $hasMapKey = trim($config['naver_maps_client_id']) !== '';
 $cssVersion = filemtime(__DIR__ . '/css/style.css');
 $jsVersion = filemtime(__DIR__ . '/js/app.js');
+
+function getServerLabel() {
+    $label = getenv('SERVER_LABEL');
+    if ($label) return $label;
+
+    $tokenCtx = stream_context_create([
+        'http' => [
+            'method' => 'PUT',
+            'header' => "X-NCP-METADATA-TOKEN-TTL-SECONDS: 21600",
+            'timeout' => 1,
+        ],
+    ]);
+    $token = trim((string) @file_get_contents('http://169.254.169.254/latest/api/token', false, $tokenCtx));
+
+    $metaCtx = $token !== ''
+        ? stream_context_create(['http' => ['header' => "X-NCP-METADATA-TOKEN: $token", 'timeout' => 1]])
+        : stream_context_create(['http' => ['timeout' => 1]]);
+
+    $serverName = trim((string) @file_get_contents('http://169.254.169.254/latest/meta-data/serverName', false, $metaCtx));
+    $instanceNo = trim((string) @file_get_contents('http://169.254.169.254/latest/meta-data/serverInstanceNo', false, $metaCtx));
+
+    if ($serverName !== '' && $instanceNo !== '') return "$serverName ($instanceNo)";
+    if ($serverName !== '') return $serverName;
+    if ($instanceNo !== '') return $instanceNo;
+
+    return gethostname();
+}
+
+$serverLabel = getServerLabel();
+$serverIp = $_SERVER['SERVER_ADDR'] ?? 'unknown';
 ?>
 <!doctype html>
 <html lang="ko">
@@ -199,5 +229,8 @@ $jsVersion = filemtime(__DIR__ . '/js/app.js');
         window.NAVER_MAPS_LOAD_FAILED = false;
     </script>
     <script src="js/app.js?v=<?= $jsVersion ?>"></script>
+    <div style="position:fixed; bottom:0; right:0; background:#222; color:#0f0; font-family:monospace; font-size:12px; padding:6px 10px; z-index:9999; opacity:0.85;">
+        Server: <?= htmlspecialchars($serverLabel) ?> | IP: <?= htmlspecialchars($serverIp) ?> | Time: <?= htmlspecialchars(date('H:i:s')) ?>
+    </div>
 </body>
 </html>
