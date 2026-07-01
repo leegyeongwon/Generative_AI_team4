@@ -1,0 +1,23 @@
+name: Gas Station Web CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'gas-station-web/**'
+      - '.github/workflows/web-deploy.yml'
+
+jobs:
+  lint-and-deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PHP syntax check
+        run: find gas-station-web -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Deploy (local sync, runner is on the server)
+        run: |
+          rsync -avz --delete --exclude=config/local.config.php \
+            gas-station-web/ /var/www/html/fuel-finder/

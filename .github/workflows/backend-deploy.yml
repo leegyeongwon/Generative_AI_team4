@@ -1,0 +1,34 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sanity check (syntax)
+        working-directory: backend
+        run: python3 -m compileall -q .
+
+      - name: Build image
+        working-directory: backend
+        run: docker build -t gas-station:latest .
+
+      - name: Restart container
+        run: |
+          docker stop gas-station || true
+          docker rm gas-station || true
+          docker run -d --name gas-station \
+            --env-file /root/backend/.env \
+            -p 8000:8000 \
+            --restart unless-stopped \
+            gas-station:latest
+          docker image prune -f
