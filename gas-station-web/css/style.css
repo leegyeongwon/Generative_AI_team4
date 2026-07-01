@@ -836,3 +836,30 @@ button {
         min-height: 420px;
     }
 }
+
+.topbar {
+    gap: 16px;
+}
+
+.nav {
+    flex: 1;
+}
+
+.admin-button {
+    margin-left: auto;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border-color: var(--line);
+    background: #fff;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.admin-button:hover {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
