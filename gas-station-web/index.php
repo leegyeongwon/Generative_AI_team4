@@ -30,7 +30,7 @@ $jsVersion = filemtime(__DIR__ . '/js/app.js');
             <button class="nav-button" type="button" data-view-link="map">지도 보기</button>
             <button class="nav-button" type="button" data-view-link="voice">음성 검색</button>
         </nav>
-        <button class="ghost-button admin-button" id="adminButton" type="button">관리자</button>
+        <a class="ghost-button admin-button" href="admin.php">관리자</a>
     </header>
 
     <main class="app-shell">
