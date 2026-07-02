@@ -3,7 +3,7 @@
 require_once __DIR__ . '/db.php';
 
 /**
- * 관리자용 테이블/컬럼 조회 및 등록·삭제 기능.
+ * 관리자용 테이블/컬럼 조회 및 등록·수정·삭제 기능.
  *
  * 보안 원칙:
  * - 테이블명/컬럼명은 항상 information_schema에서 조회한 "실제 존재하는" 이름과
@@ -108,6 +108,86 @@ function insert_row(string $table, array $data): void
     $stmt->execute($params);
 }
 
+/**
+ * 기본키(primary key) 값으로 행을 찾아 나머지 컬럼 값을 갱신한다.
+ *
+ * - 기본키 컬럼 자체는 SET 대상에서 제외한다 (WHERE 조건으로만 사용).
+ * - auto_increment 컬럼은 갱신하지 않는다.
+ * - $data에 값이 없거나 빈 문자열인 컬럼은 변경하지 않는다(그대로 유지).
+ *
+ * @return int 실제로 값이 바뀐 행 수 (rowCount)
+ */
+function update_row(string $table, array $keyValues, array $data): int
+{
+    assert_valid_table($table);
+    $columns = get_table_columns($table);
+    $pkColumns = get_primary_key_columns($table);
+
+    if (empty($pkColumns)) {
+        throw new InvalidArgumentException('NO_PRIMARY_KEY');
+    }
+
+    $updateData = [];
+    foreach ($columns as $column) {
+        $name = $column['COLUMN_NAME'];
+
+        if ($column['EXTRA'] === 'auto_increment') {
+            continue;
+        }
+
+        // 기본키 컬럼은 WHERE 조건에만 쓰고 SET 대상에서는 제외한다.
+        if (in_array($name, $pkColumns, true)) {
+            continue;
+        }
+
+        if (!array_key_exists($name, $data)) {
+            continue;
+        }
+
+        $value = trim((string)$data[$name]);
+        if ($value === '') {
+            continue; // 비워둔 값은 변경하지 않는다.
+        }
+
+        $updateData[$name] = $value;
+    }
+
+    if (empty($updateData)) {
+        throw new InvalidArgumentException('EMPTY_DATA');
+    }
+
+    $params = [];
+
+    $setClauses = [];
+    foreach ($updateData as $name => $value) {
+        $setClauses[] = "`{$name}` = :set_{$name}";
+        $params[":set_{$name}"] = $value;
+    }
+
+    $whereClauses = [];
+    foreach ($pkColumns as $column) {
+        $value = trim((string)($keyValues[$column] ?? ''));
+        if ($value === '') {
+            throw new InvalidArgumentException('MISSING_KEY_VALUE');
+        }
+
+        $whereClauses[] = "`{$column}` = :where_{$column}";
+        $params[":where_{$column}"] = $value;
+    }
+
+    $sql = sprintf(
+        'UPDATE `%s` SET %s WHERE %s',
+        $table,
+        implode(', ', $setClauses),
+        implode(' AND ', $whereClauses)
+    );
+
+    $stmt = get_pdo()->prepare($sql);
+    $stmt->execute($params);
+
+    return $stmt->rowCount();
+}
+
 function delete_row(string $table, array $keyValues): int
 {
     assert_valid_table($table);
@@ -130,83 +210,6 @@ function delete_row(string $table, array $keyValues): int
     }
 
     $sql = sprintf('DELETE FROM `%s` WHERE %s', $table, implode(' AND ', $conditions));
-    $stmt = get_pdo()->prepare($sql);
-    $stmt->execute($params);
-
-    return $stmt->rowCount();
-}
-function update_row(string $table, array $data, array $keyValues): int
-{
-    assert_valid_table($table);
-
-    $columns = get_table_columns($table);
-    $pkColumns = get_primary_key_columns($table);
-
-    if (empty($pkColumns)) {
-        throw new InvalidArgumentException('NO_PRIMARY_KEY');
-    }
-
-    $columnNames = array_map(
-        static fn ($column) => $column['COLUMN_NAME'],
-        $columns
-    );
-
-    $sets = [];
-    $params = [];
-
-    foreach ($columns as $column) {
-        $name = $column['COLUMN_NAME'];
-
-        if ($column['EXTRA'] === 'auto_increment') {
-            continue;
-        }
-
-        if (in_array($name, $pkColumns, true)) {
-            continue;
-        }
-
-        if (!array_key_exists($name, $data)) {
-            continue;
-        }
-
-        $value = trim((string)$data[$name]);
-
-        if ($value === '') {
-            continue;
-        }
-
-        if (!in_array($name, $columnNames, true)) {
-            continue;
-        }
-
-        $sets[] = "`{$name}` = :set_{$name}";
-        $params[":set_{$name}"] = $value;
-    }
-
-    if (empty($sets)) {
-        throw new InvalidArgumentException('EMPTY_DATA');
-    }
-
-    $conditions = [];
-
-    foreach ($pkColumns as $column) {
-        $value = trim((string)($keyValues[$column] ?? ''));
-
-        if ($value === '') {
-            throw new InvalidArgumentException('MISSING_KEY_VALUE');
-        }
-
-        $conditions[] = "`{$column}` = :key_{$column}";
-        $params[":key_{$column}"] = $value;
-    }
-
-    $sql = sprintf(
-        'UPDATE `%s` SET %s WHERE %s',
-        $table,
-        implode(', ', $sets),
-        implode(' AND ', $conditions)
-    );
-
     $stmt = get_pdo()->prepare($sql);
     $stmt->execute($params);
 

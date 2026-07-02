@@ -2,6 +2,6 @@
 // Copy to config/local.config.php on the server and fill private values.
 // config/local.config.php is ignored by git.
 return [
-    'password' => 'team4team4!',
+    'password' => 'qwer1234!',
     'naver_maps_client_id' => '8xli93ke3c',
 ];

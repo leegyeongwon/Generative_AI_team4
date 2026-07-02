@@ -1,14 +1,10 @@
 <?php
-
 require_once __DIR__ . '/../includes/admin_repository.php';
-
 require_method('POST');
-
 $body = read_json_body();
 $table = trim($body['table'] ?? '');
 $data = $body['data'] ?? [];
 $keys = $body['keys'] ?? [];
-
 if ($table === '' || !is_array($data) || !is_array($keys)) {
     json_response([
         'success' => false,
@@ -16,10 +12,10 @@ if ($table === '' || !is_array($data) || !is_array($keys)) {
         'message' => 'table, data, keys는 필수입니다.',
     ], 400);
 }
-
 try {
-    $affected = update_row($table, $data, $keys);
-
+    // update_row(string $table, array $keyValues, array $data)
+    // 두 번째 인자는 반드시 기본키(keys), 세 번째 인자는 수정할 값(data)이어야 한다.
+    $affected = update_row($table, $keys, $data);
     json_response([
         'success' => true,
         'message' => $affected > 0 ? '수정되었습니다.' : '변경된 내용이 없거나 대상 데이터를 찾지 못했습니다.',
@@ -27,7 +23,6 @@ try {
     ]);
 } catch (InvalidArgumentException $error) {
     $code = $error->getMessage();
-
     $message = match ($code) {
         'INVALID_TABLE' => '존재하지 않는 테이블입니다.',
         'NO_PRIMARY_KEY' => '기본키가 없는 테이블은 이 화면에서 수정할 수 없습니다.',
@@ -35,7 +30,6 @@ try {
         'EMPTY_DATA' => '수정할 값이 없습니다.',
         default => '요청이 올바르지 않습니다.',
     };
-
     json_response([
         'success' => false,
         'error_code' => $code,
