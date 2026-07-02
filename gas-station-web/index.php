@@ -214,6 +214,7 @@ $serverIp = $_SERVER['SERVER_ADDR'] ?? 'unknown';
                         <div class="admin-fields" id="adminFields"></div>
                         <div class="admin-actions">
                             <button class="primary-button" type="submit" id="adminRegisterButton">등록</button>
+                            <button class="ghost-button" type="button" id="adminUpdateButton">수정</button>
                             <button class="ghost-button danger-button" type="button" id="adminDeleteButton">제거</button>
                         </div>
                         <div class="admin-status" id="adminStatus"></div>
